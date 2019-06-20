@@ -1,0 +1,214 @@
+---
+title: "APPROACHES TO MODEL SPECIFICATION FOR REGRESSION ANALYSIS WITH CORRELATED, ENDPOINT-INFLATED BOUNDED COUNT DATA"
+output: postr::flex_dashboard_poster
+---
+<style>
+body {
+  padding-top:0px
+}
+.navbar{
+  visibility: hidden
+}
+.intromodels{
+  vertical-align: top
+}
+
+</style>
+
+## Header row {data-height=88}
+
+###
+
+<table style="width:100%">
+<tr>
+  <td><center><h3>
+  **Approaches to Model Specification for Regression Analysis with Correlated, Endpoint-Inflated Bounded Count Data**
+  </h3></center></td>
+</tr>
+<tr><td><center>
+  **Boris Fazio, Cristian Bayes, Giancarlo Sal y Rosas**
+  <br>
+  Pontificia Universidad Católica del Perú
+  </center></td>
+</tr>
+</table> 
+
+<hr>
+
+<table style="width:100%">
+<tr class="intromodels">
+<td width = "23%"><center>**Lambert (1992)**</center>
+$$Y_i \sim
+\begin{cases}
+0 &\text{with probability }p_i\\
+\text{Poisson}(\lambda_i)&\text{with probability }1-p_i
+\end{cases}\\
+\\
+\log(\lambda) = \mathbf{B}\beta,\quad \text{logit}(p) = \mathbf{G}\gamma$$
+</td>
+<td width = "2%">➡</td>
+<td width = "23%"><center>**Hall (2000)**</center>
+$$Y_i \sim
+\begin{cases}
+0 &\text{with probability }p_i\\
+\text{Binomial}(\pi_i; n_i)&\text{with probability }1-p_i
+\end{cases}\\
+\\
+\text{logit}(\pi) = \mathbf{B}\beta,\quad \text{logit}(p) = \mathbf{G}\gamma$$
+</td>
+<td width = "2%">➡</td>
+<td width = "23%"><center>**Tian (2015)**</center>
+$$Y_i \sim
+\begin{cases}
+0 &\text{with probability }p_{i0}\\
+\text{Binomial}(\pi_i; n_i)&\text{with probability }p_{i1}\\
+n_i &\text{with probability }p_{i2}\\
+\end{cases}\\
+\\
+\text{logit}(\pi) = \mathbf{B}\beta,\quad \mathbf{p} = \text{softmax}(\mathbf{G}\gamma_0,\mathbf{G}\gamma_1, 0)$$
+</td>
+<td width = "2%">➡</td>
+<td width = "23%"><center>**This work**</center>
+$$Y_i \sim
+\begin{cases}
+0 &\text{with probability }p_{i0}\\
+\text{Binomial}(\pi_i; n_i)&\text{with probability }p_{i1}\\
+n_i &\text{with probability }p_{i2}\\
+\end{cases}\\
+\\
+\begin{array}{cc}
+\text{logit}(\pi) = \mathbf{B}\beta,& p_i = \left(\Phi_{-\infty}^{-1}, \Phi_{-1}^{1}, \Phi_{1}^{\infty}\right)_{\mu_i, \sigma_i}\\
+&\mu = \mathbf{G}\gamma,\quad \sigma = \log(\mathbf{K}\kappa)
+\end{array}$$
+</td>
+</tr>
+</table> 
+
+```{r}
+options(encoding = "utf8")
+source("code/plot_data.R")
+source("code/plot_math.R")
+
+data_plot <- readRDS("data/data_plot.rds")
+norm_plot <- readRDS("data/norm_plot.rds")
+loo_table <- readRDS("data/loo_table.rds")
+marg_table <- readRDS("data/marg_table.rds")
+marg_plot <- readRDS("data/marg_plot.rds")
+ppch_plot <- readRDS("data/ppch_plot.rds")
+compare_plot <- readRDS("data/compare_plot.rds")
+
+## Save plots as SVG ##
+# Done here because it's easier to change dimensions and
+# re-knit on the same file while experimenting with the look
+mp <- function(x)ggsave(paste0("data/plot",x,".svg"),
+                               plot = plot_grid(marg_plot[[x]], ppch_plot[[x]], align = "h", axis = "tb"),
+                               width = 4.62, height = 1.58, dpi = 150)
+mp(1);mp(2);mp(3);mp(4)
+ggsave("data/compare.svg", plot = compare_plot, width = 4.62, height = 2.4, dpi = 150)
+ggsave("data/whitefly.svg", plot = data_plot, width = 4.62, height = 2.4, dpi = 150)
+ggsave("data/norm_plot.svg", plot = norm_plot, width = 4.62, height = 2.4, dpi = 150)
+```
+
+## Body row {data-height=500}
+
+### **Modeling**
+
+#### **Data**
+
+From **van Iersel (2000)**, a Randomized Complete Block Design was conducted to evaluate a treatment against the silverleaf whitefly on poinsettia plants.
+<div align="center">
+![](data/whitefly.svg){width=648px}
+</div>
+
+#### **Model specification**
+
+**Hall (2004)** assumed a constant inflation probability and used the following linear predictor for the binomial $p$:
+
+$$\eta_i = \beta_0 + \beta_{\text{treat}_i} \times \text{treatment}_i+\beta_{\text{block}_i}\times\text{block}_i+\beta_{\text{week}}\times\text{week}_i$$
+
+We used the above predictor for both $p$ and for the inflation probabilities.
+
+###### **Link function for inflation probabilities**
+
+**Tian (2015)** suggests using the softmax function for regression on the inflation probabilities. However, its use forces the user to choose which two of the three probabilities to place the predictors on and the consequences of such a choice are not immediately obvious. Furthermore, the choice is also constrained by the amount of inflation, which may not be high enough to permit reliable estimation of the desired coefficients.
+
+$$\text{softmax}(s_1, s_2) = \left(
+\begin{array}\\
+\frac{e^{s_1}}{e^{s_1}+e^{s_2}+1}&\frac{e^{s_2}}{e^{s_1}+e^{s_2}+1}&\frac{1}{e^{s_1}+e^{s_2}+1}
+\end{array}\right)$$
+
+Based on latent variable models from psychometrics literature, we propose modeling endpoint inflation as an ordinal outcome, using a latent normal model to obtain the probabilites. Under this model, the mean is related to the symmetry of the endpoint inflation while the variance represents the total amount of inflation. Because all three probabilities are modeled simultaneously, the model can be estimated even if one has an endpoint with small probability of inflation.
+
+$$\text{LatentNormal}(\mu, \sigma) = \left(
+\begin{array}\\
+\Phi({-1 - \mu \over \sigma}) & \Phi({1 - \mu \over \sigma}) - \Phi({-1 - \mu \over \sigma}) & 1 - \Phi({1 - \mu \over \sigma})
+\end{array}\right)$$
+
+<div align="center">
+![](data/norm_plot.svg){width=480px}
+</div>
+
+#### **Model comparison**
+
+The preditive performance of a model can be measured by the expected log predictive density,
+
+$$\text{elpd}=\sum_i \int p_t(\tilde{y_i})\ln p(\tilde{y}_i\mid y) d\tilde{y}_i.$$
+However, $p_t$ is rarely known in practices, so leave-one-out methods are used instead. The computational cost of refitting the model for each observation can be avoided by using importance sampling. For $n$ observations and $S$ posterior draws, we have weights $r_i^s$ such that:
+
+$$\hat{\text{elpd}}=\sum_{i=1}^n\frac{\sum_{s=1}^Sr_i^sp(y_i\mid\theta^s)}{\sum_{s=1}^Sr_i^s} \qquad r_i^s= \frac{1}{p(y_i\mid \theta^s)}$$
+
+Instead of using $r_i^s$ directly, we use Pareto-smoothed weights, $w_i^s$, which were shown to be more stable by **Vehtari (2017)**. Multiplying the smoothed $\hat{\text{elpd}}$ by $-2$ gives us the leave-one-out information criterion, which we used to measure the models' predictive performance:
+
+$$\text{LOOIC} = -2\sum_{i=1}^n\log\left(\frac{\sum_{s=1}^Sw_i^sp(y_i\mid\theta^s)}{\sum_{s=1}^Sw_i^s}\right)$$
+
+### **Results**
+
+#### **Marginal effects and fitted draws**
+
+<table width = "100%"><tr>
+<td width = "50%">**Binomial**</td>
+<td width = "50%" align="right">LOOIC: `r loo_table[1,"LOOIC"]` ± `r loo_table[1,"SE"]`</td>
+</tr></table>
+
+![](data/plot1.svg)
+
+<table width = "100%"><tr>
+<td width = "50%">**Zero-Inflated Binomial**</td>
+<td width = "50%" align="right">LOOIC: `r loo_table[3,"LOOIC"]` ± `r loo_table[3,"SE"]`</td>
+</tr></table>
+
+![](data/plot2.svg)
+
+<table width = "100%"><tr>
+<td width = "50%">**Endpoint-Inflated Binomial (softmax link)**</td>
+<td width = "50%" align="right">LOOIC: `r loo_table[6,"LOOIC"]` ± `r loo_table[6,"SE"]`</td>
+</tr></table>
+
+![](data/plot3.svg)
+
+<table width = "100%"><tr>
+<td width = "50%">**Endpoint-Inflated Binomial (normal cdf link)**</td>
+<td width = "50%" align="right">LOOIC: `r loo_table[8,"LOOIC"]` ± `r loo_table[8,"SE"]`</td>
+</tr></table>
+
+![](data/plot4.svg)
+
+#### **Handling overdispersion: Beta (red) vs Logit-normal (cyan)**
+
+![](data/compare.svg)
+
+## Footer row {data-height=15} 
+
+### **Conclusions** {data-width=50}
+
+* Inflation can be ignored when estimates of marginal effects are the main goal.
+
+* Modeling inflation through a normal cdf link can provide better results than the softmax.
+
+* Conditional specification for repeated measures seems to be more efficient with small number of subjects.
+
+### **Additional information** {data-width=50}
+
+Full citations and source code available on my Github profile, **bmfazio**.
+
+This poster was created with RMarkdown using the **postr** package, made by Github user **odeleongt**.

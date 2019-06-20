@@ -1,0 +1,4 @@
+.Rproj.user
+data/*.rds
+data/*.svg
+*.html
