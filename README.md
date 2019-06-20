@@ -1,8 +1,10 @@
+## How to use this
+
 To generate the poster, knit **poster.Rmd** in RStudio. It will output an **.html** file.
 
 This was designed to fit on an A0 page in portrait orientation. To get a printable image, I used the **Firefox** Responsive Design View, which you can access by pressing `Ctrl + Shift + M`. I set it to 1500 x 2121 and DPR: 3.
 
-I will be writing a blog post on my [personal website](bmfazio.github.io) with more information on how I made the poster and another one on how I coded the model using **R**, **Stan** and **brms**.
+I will be writing a blog post on my [personal website](https://bmfazio.github.io) with more information on how I made the poster and another one on how I coded the model using **R**, **Stan** and the **brms** package.
 
 [Link to the **postr** repo](https://github.com/odeleongt/postr)
 
